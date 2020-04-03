@@ -1,7 +1,7 @@
-################################
-CODE REVIEW EXERCISE.
-All mistakes are intentional.
-################################
+#################################
+# CODE REVIEW EXERCISE.         #
+# All mistakes are intentional. #
+#################################
 
 
 
