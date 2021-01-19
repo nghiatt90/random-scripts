@@ -2,11 +2,9 @@
 # Brute force password cracking demo
 
 import argparse
-import functools
 import hashlib
 import itertools
 import multiprocessing as mp
-import operator as op
 import string
 import time
 
@@ -26,19 +24,13 @@ def calculate_total_possibilities(char_list, min_len, max_len):
 	total = 0
 	char_count = len(char_list)
 	for i in range(min_len, max_len+1):
-		total += ncr_replacement(char_count, i)
+		total += char_count ** i
 	return total
-
-
-def ncr_replacement(n, r):
-    numer = functools.reduce(op.mul, range(n+r-1, n-1, -1), 1)
-    denom = functools.reduce(op.mul, range(1, r+1), 1)
-    return numer // denom
 
 
 def generate(queue, stop, char_list, min_len=6, max_len=12):
 	for length in range(min_len, max_len+1):
-		for word in itertools.combinations_with_replacement(char_list, length):
+		for word in itertools.product(char_list, repeat=length):
 			queue.put(''.join(word))
 			if stop.value:
 				return
@@ -47,7 +39,8 @@ def generate(queue, stop, char_list, min_len=6, max_len=12):
 def test(queue, md5_hash, counter, stop):
 	while queue and not stop.value:
 		word = queue.get()
-		if hashlib.md5(word.encode()).hexdigest() == md5_hash:
+		h = hashlib.md5(word.encode()).hexdigest()
+		if h == md5_hash:
 			print(f'\nFound password: {word}')
 			stop.value = 1
 		counter.value += 1
@@ -66,12 +59,14 @@ def main(args):
 	generator = mp.Process(target=generate, args=(queue, stop, char_list, args.min_len, args.max_len))
 	generator.start()
 
-	while not stop.value:
+	while True:
 		percentage = counter.value / total_combinations * 100
-		speed = counter.value//(time.time()-start)
+		speed = counter.value/(time.time()-start)
 		eta = format_time((total_combinations - counter.value) / speed) if speed > 0 else 'N/A'
 		print(f'\rWords tried: {counter.value}/{total_combinations} ({percentage:.02f}%); {speed:.02f} wps; ETA: {eta}', end='')
 		time.sleep(1)
+		if stop.value:
+			break
 
 	generator.join()
 
